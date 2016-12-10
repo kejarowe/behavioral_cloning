@@ -25,6 +25,7 @@ def gen_data_list(data_folder):
     right_turn_data_multiplier = 8
     for csv_file in csv_files:
         r = csv.reader(open(csv_file))
+        print('csv file is: ',csv_file)
         file_entries = []
         file_entries += r
         data_list += file_entries
