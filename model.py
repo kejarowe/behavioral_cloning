@@ -29,9 +29,11 @@ def gen_data_list(data_folder):
         file_entries += r
         data_list += file_entries
         if 'right_turn' in csv_file:
+            print('found right turn samples, including ',right_turn_data_multiplier,' times')
             for i in range(1,right_turn_data_multiplier):
                 data_list += file_entries
         elif 'recovery' in csv_file:
+            print('found recovery samples, including ',recovery_data_multiplier,' times')
             for i in range(1,recovery_data_multiplier):
                 data_list += file_entries
     return shuffle(data_list,random_state=314159)
