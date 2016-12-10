@@ -21,16 +21,20 @@ def gen_data_list(data_folder):
     csv_files = csv_files.splitlines()
 
     data_list = []
-    recovery_data_multiplier = 5
+    recovery_data_multiplier = 2
+    right_turn_data_multiplier = 8
     for csv_file in csv_files:
         r = csv.reader(open(csv_file))
         file_entries = []
         file_entries += r
         data_list += file_entries
-        if 'recovery' in csv_file:
+        if 'right_turn' in csv_file:
+            for i in range(1,right_turn_data_multiplier):
+                data_list += file_entries
+        elif 'recovery' in csv_file:
             for i in range(1,recovery_data_multiplier):
                 data_list += file_entries
-    return shuffle(data_list)
+    return shuffle(data_list,random_state=314159)
 
 def normalize(image):
     image.astype('float32')
@@ -62,31 +66,31 @@ model = Sequential()
 model.add(Convolution2D(24,5,5,border_mode='valid', input_shape=(160,320,3)))
 model.add(MaxPooling2D(dim_ordering='th'))
 model.add(Activation('relu'))
-model.add(Dropout(0.1))
+#model.add(Dropout(0.1))
 #second conv layer
-#model.add(Convolution2D(36,5,5,border_mode='valid'))
-#model.add(MaxPooling2D(dim_ordering='th'))
-#model.add(Activation('relu'))
+model.add(Convolution2D(36,5,5,border_mode='valid'))
+model.add(MaxPooling2D(dim_ordering='th'))
+model.add(Activation('relu'))
 #model.add(Dropout(0.1))
 #third conv layer
-#model.add(Convolution2D(48,5,5,border_mode='valid'))
-#model.add(MaxPooling2D(dim_ordering='th'))
-#model.add(Activation('relu'))
+model.add(Convolution2D(48,5,5,border_mode='valid'))
+model.add(MaxPooling2D(dim_ordering='th'))
+model.add(Activation('relu'))
 #model.add(Dropout(0.1))
 #fourth conv layer
 model.add(Convolution2D(64,3,3,border_mode='valid'))
 model.add(MaxPooling2D(dim_ordering='th'))
 model.add(Activation('relu'))
-model.add(Dropout(0.1))
+#model.add(Dropout(0.1))
 #fifth conv layer
-#model.add(Convolution2D(64,3,3,border_mode='valid'))
-#model.add(MaxPooling2D(dim_ordering='th'))
-#model.add(Activation('relu'))
+model.add(Convolution2D(64,3,3,border_mode='valid'))
+model.add(MaxPooling2D(dim_ordering='th'))
+model.add(Activation('relu'))
 #model.add(Dropout(0.1))
 model.add(Flatten())
 #first fully connected layer
-#model.add(Dense(100))
-#model.add(Activation('relu'))
+model.add(Dense(100))
+model.add(Activation('relu'))
 #second fully connected layer
 model.add(Dense(50))
 model.add(Activation('relu'))
@@ -105,12 +109,21 @@ data_list = gen_data_list(args.data)
 num_data_points = len(data_list)
 print("data list has: ",num_data_points," entries")
 batch_size = 32
-train_samples_per_epoch = batch_size * math.ceil(num_data_points/batch_size)
-data_gen = data_generator(data_list,32)
+validation_percent = 0.05
+num_validation_points  = int(validation_percent*num_data_points)
+num_train_points = num_data_points - num_validation_points
+validation_list = data_list[0:num_validation_points]
+train_list = data_list[num_validation_points:]
+validation_samples = batch_size * math.ceil(num_validation_points/batch_size)
+train_samples_per_epoch = batch_size * math.ceil(num_train_points/batch_size)
+valid_gen = data_generator(validation_list,batch_size)
+train_gen = data_generator(train_list,batch_size)
 #print("first entry is:")
 #print(next(data_gen))
 
-history = model.fit_generator(data_gen,train_samples_per_epoch,nb_epoch=1)
+history = model.fit_generator(train_gen,train_samples_per_epoch,nb_epoch=1,validation_data=valid_gen,\
+                                  nb_val_samples=validation_samples)
+
 print('training result: ',history.history)
 
 #save model to file
