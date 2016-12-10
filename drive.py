@@ -20,6 +20,9 @@ sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
+cyclic_counter = 0
+old_sa = 0
+old_throttle = 0
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -32,18 +35,29 @@ def telemetry(sid, data):
     # The current image from the center camera of the car
     imgString = data["image"]
     image = Image.open(BytesIO(base64.b64decode(imgString)))
-    image_array = np.asarray(image)
-    image_array = image_array / 255.0
-    image_array -= 0.5
+    global cyclic_counter
+    global old_sa
+    global old_throttle
+    cyclic_counter += 1
+    #print('cyclic counter is: ',cyclic_counter)
+    if cyclic_counter == 3:
+        #i always compute the same value 3x in a row, could it be the same image is sent 3 times? left,right,center image?
+        cyclic_counter = 0
+        image_array = np.asarray(image)
+        image_array = image_array / 255.0
+        image_array -= 0.5
     #print("image array is: ",image_array)
-    transformed_image_array = image_array[None, :, :, :]
+        transformed_image_array = image_array[None, :, :, :]
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
-    steering_angle = float(model.predict(transformed_image_array, batch_size=1))
+        steering_angle = float(model.predict(transformed_image_array, batch_size=1))
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
-    throttle = 0.2 #0.2
-    print(steering_angle, throttle)
-    send_control(steering_angle, throttle)
-
+        throttle = 0.15 #0.2
+        print(steering_angle, throttle)
+        old_sa = steering_angle
+        old_throttle = throttle
+        send_control(steering_angle, throttle)
+    else:
+        send_control(old_sa,old_throttle)
 
 @sio.on('connect')
 def connect(sid, environ):
