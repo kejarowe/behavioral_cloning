@@ -14,7 +14,7 @@ for csv_file in csv_files:
         throttle = float(line[4])
         brake = float(line[5])
         speed = float(line[6])
-        if (brake == 1) or (speed < 20) or (throttle != 1):
+        if (brake == 1) or (speed < 20) or (throttle < 0.2):
             #this sample should not be in the data, delete center image
             call(['rm',line[0]])
             removed_lines += 1
